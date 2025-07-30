@@ -5,6 +5,8 @@ import os
 import time
 import multiprocessing
 
+from cs336_basics.CodeProfiler import CodeProfiler
+
 class BPETokenizer:
     def __init__(self, merges_output_file: str = 'default_merges_file.txt', vocabulary_output_file: str = 'default_vocabulary_file.txt'):
         self.merges_output_file = merges_output_file
@@ -12,6 +14,7 @@ class BPETokenizer:
         self.merges = []
         self.vocab = []
         self.num_processes = 10
+        self.code_profiler = CodeProfiler()
 
     def merge(self, indices: list[int], pair: tuple[int, int], new_index: int) -> list[int]:  # @inspect indices, @inspect pair, @inspect new_index
         """Return `indices`, but with all instances of `pair` replaced with `new_index`."""
@@ -124,6 +127,8 @@ class BPETokenizer:
             if len(vocab.keys()) < vocab_size:
                 vocab[len(vocab.keys())] = token_bytes
 
+        self.code_profiler.start_new_profiler(name='Pretokenization')
+
         with open(input_path, "rb") as f:
             boundaries = self.find_chunk_boundaries(
                 f, self.num_processes, "<|endoftext|>".encode("utf-8")
@@ -149,6 +154,10 @@ class BPETokenizer:
                     for index1, index2 in zip(combined_indices[pretoken], combined_indices[pretoken][1:]):
                         bytepairs_to_pretokens[(index1, index2)].add(pretoken)
                         bytepairs_to_counts[(index1, index2)] += pretoken_count
+
+                self.code_profiler.log_profiler()
+
+                self.code_profiler.start_new_profiler(name='Bytepair Merging')
 
                 num_merges = vocab_size - len(vocab.keys())
 
@@ -189,19 +198,18 @@ class BPETokenizer:
 
                     i+=1
 
+                self.code_profiler.log_profiler()
+
         self.merges = merges 
         self.vocab = vocab
 
         return (vocab, merges)
 
-'''
+
 if __name__ == "__main__":
-    start_time = time.time()
     bpe_tokenizer = BPETokenizer('../data/tinystories_train_merges_output.txt', '../data/tinystories_train_vocab_output.txt')
     bpe_tokenizer.train_bpe(input_path='../data/TinyStoriesV2-GPT4-train.txt', vocab_size=10000, special_tokens=["<|endoftext|>"])
-    end_time = time.time()
-    print('Total Time = ' + str(end_time - start_time))
     bpe_tokenizer.save_data()
-'''
+    print(bpe_tokenizer.code_profiler)
         
         
