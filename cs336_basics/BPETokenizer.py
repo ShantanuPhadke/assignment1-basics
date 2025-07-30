@@ -2,7 +2,9 @@ import regex as re
 from collections import defaultdict
 
 class BPETokenizer:
-    def __init__(self):
+    def __init__(self, merges_output_file: str, vocabulary_output_file: str):
+        self.merges_output_file = merges_output_file
+        self.vocabulary_output_file = vocabulary_output_file
         self.merges = []
         self.vocab = []
 
@@ -18,6 +20,13 @@ class BPETokenizer:
                 new_indices.append(indices[i])
                 i += 1
         return new_indices
+
+    def save_data(self):
+        with open(self.merges_output_file, "w") as file:
+            file.write(str(self.merges))
+
+        with open(self.vocabulary_output_file, "w") as file:
+            file.write(str(self.vocab))
 
     def train_bpe(self, input_path: str, vocab_size: int, special_tokens: list[str]) -> (dict[int, bytes], list[tuple[bytes, bytes]]):
         # Add in special tokens to the vocabulary
@@ -92,5 +101,9 @@ class BPETokenizer:
         self.vocab = vocab
 
         return (vocab, merges)
+
+bpe_tokenizer = BPETokenizer('../data/tinystories_train_merges_output.txt', '../data/tinystories_train_vocab_output.txt')
+bpe_tokenizer.train_bpe(input_path='../data/TinyStoriesV2-GPT4-train.txt', vocab_size=10000, special_tokens=["<|endoftext|>"])
+bpe_tokenizer.save_data()
         
         
