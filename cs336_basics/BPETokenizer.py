@@ -7,6 +7,7 @@ import multiprocessing
 import ast
 from collections.abc import Iterable, Iterator
 from cs336_basics.CodeProfiler import CodeProfiler
+from cs336_basics.BPEIterator import BPEIterator
 
 class BPETokenizer:
     def __init__(self, vocab: dict[int, bytes] = dict([]), merges: list[tuple[bytes, bytes]] = [], special_tokens: list[str] | None = None, merges_output_file: str = 'default_merges_file.txt', vocabulary_output_file: str = 'default_vocabulary_file.txt'):
@@ -234,7 +235,7 @@ class BPETokenizer:
         return encoding
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
-        pass
+        return BPEIterator(my_tokenizer=self, my_iterable=iterable)
 
     def decode(self, ids: list[int]) -> str:
         bytestr = b''
