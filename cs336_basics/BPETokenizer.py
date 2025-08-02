@@ -104,22 +104,7 @@ class BPETokenizer:
 
 
     def calculate_pretokens(self, text:str) -> list[list[bytes]]:
-        pass
-
-    def calculate_encoding(self, pretokens:list[list[bytes]]) -> list[int]:
-        pass
-
-    def encode(self, text: str) -> list[int]:
-        encoding = []
-
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-
-        # self.vocab = {b' ': 0, b'a': 1, b'c': 2, b'e': 3, b'h': 4, b't': 5, b'th': 6, b' c': 7, b' a': 8, b'the': 9, b' at': 10 }
-        # self.merges = [(b't', b'h'), (b' ', b'c'), (b' ', b'a'), (b'th', b'e'), (b' a', b't')]
-
-        vocab_reverse = {}
-        for v in self.vocab:
-            vocab_reverse[self.vocab[v]] = v
 
         print('text = ' + text)
         print()
@@ -181,9 +166,20 @@ class BPETokenizer:
             else:
                 pretokens.append([processed_content.encode('utf-8')[i:i+1] for i in range(len(processed_content.encode('utf-8')))])
 
+        return pretokens
+
+    def encode(self, text: str) -> list[int]:
+        encoding = []
+
         # For each pretoken, keep doing the following till you can't find a matching merge anymore:
         #   (1) Find the first matching merge
         #   (2) Apply the matching merge
+
+        pretokens = self.calculate_pretokens(text)
+
+        vocab_reverse = {}
+        for v in self.vocab:
+            vocab_reverse[self.vocab[v]] = v
 
         print('pretokens pre-processing = ' + str(pretokens))
         for pretoken_index in range(len(pretokens)):
@@ -233,20 +229,8 @@ class BPETokenizer:
             print('pretoken post-processing = ' + str(pretoken))
             print()
 
-            encoding.extend([vocab_reverse[b] for b in pretoken])
+            encoding.extend([vocab_reverse[b] for b in pretoken])              
 
-            #[b' Univers', b'i', b'ty'] -> (b' Univers', b'i'), (b'i', b'ty')
-            # Example 'theta' -> [t, h, e, t, a]
-            # Merge found at beginning: (t, h) -> new bytepairs= [t, h, e, t, a] -> [th, h, e, t, a] -> pop(h) -> [th, e, t, a]
-            # Merge found at end: (t, a) -> new bytepairs=[t, h, e, t, a] -> [t, h, e, ta, a] -> pop(a) -> [t, h, e, ta]
-            # Merge found in the middle: (h, e) -> new bytepairs=[t, h, e, t, a] -> [t, he, e, t, a] -> pop(e)
-
-            # Multi-merging examples:
-            # Example ' the' -> (t, h), (h, e)
-            # Merge 1: (th, e)
-            # Merge 2: (the)                  
-
-        #print('overall ecoding = ' + str(encoding))
         return encoding
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
