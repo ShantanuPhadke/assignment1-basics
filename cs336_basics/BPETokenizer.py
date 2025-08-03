@@ -107,55 +107,33 @@ class BPETokenizer:
     def calculate_pretokens(self, text:str) -> list[list[bytes]]:
         PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
-        print('text = ' + text)
-        print()
-
         content_docs = [text]
         special_tokens_ordering = []
 
         if self.special_tokens:
-            # Sort special tokens from longest to shortest
-            print('special tokens before sorting = ' + str(self.special_tokens))
+            # Sort special tokens from longest to shortest to handle overlapping tokens
             self.special_tokens.sort(key=lambda token: -1*len(token))
-            # content doc index -> index -> special token
-            # starting_indices_to_special_token = {}
-            print('special tokens after sorting = ' + str(self.special_tokens))
-            #content_docs = re.split("|".join(self.special_tokens), text)
+
             for special_token in self.special_tokens:
                 special_token_length = len(special_token)
                 content_doc_index = 0
                 for content_doc in content_docs:
-                    #if content_doc_index not in starting_indices_to_special_token:
-                    #    starting_indices_to_special_token[content_doc_index] = {}
                     for i in range(len(content_doc) - special_token_length+1):
                         if content_doc[i:i+special_token_length] == special_token:
                             special_tokens_ordering.append(special_token)
                             # Take out this chunk of text so we don't double count it for overlapping tokens
                             content_docs[content_doc_index] = content_doc[:i] + content_doc[i+special_token_length:]
                     content_doc_index += 1
-                print('special_tokens_ordering = ' + str(special_tokens_ordering))
-                print('content_docs = ' + str(content_docs))
-                print()
 
             content_docs = re.split("|".join([re.escape(spt) for spt in self.special_tokens]), text)
 
-        print('Processing content_docs = ' + str(content_docs))
-
         processed_content_docs = []
         special_token_index = 0
-        #special_token_match_started = False
+
         for content_doc in content_docs:
             for match in re.finditer(PAT, content_doc):
-                # Whenever '' is encountered its a special token
-                if match.group() == '':
-                    #if special_token_match_started:
-                    processed_content_docs.append(self.special_tokens[0].encode('utf-8'))
-                    #special_token_match_started = False
-                    #else:
-                    #    special_token_match_started = True
-                else:
-                    processed_content_docs.append(match.group())
-            # Every content doc is split at a special token, find the correct special token and add the encoded version in
+                processed_content_docs.append(match.group())
+            # Every content doc is split at a special token unless we run out of matches, find the correct special token and add the encoded version in
             if special_token_index < len(special_tokens_ordering):
                 processed_content_docs.append(special_tokens_ordering[special_token_index].encode('utf-8'))
                 special_token_index+=1
@@ -182,16 +160,14 @@ class BPETokenizer:
         for v in self.vocab:
             vocab_reverse[self.vocab[v]] = v
 
-        print('pretokens pre-processing = ' + str(pretokens))
         for pretoken_index in range(len(pretokens)):
             pretoken = pretokens[pretoken_index]
-            print('pretoken pre-processing = ' + str(pretoken))
             merge_index = 0
             can_merge = len(pretoken) > 1
             while merge_index < len(self.merges) and can_merge:
                 merge = self.merges[merge_index]
                 if merge[0] in pretoken and merge[1] in pretoken[pretoken.index(merge[0])+1:]:
-                    print('Potentially matching merge detected = (' + str(merge[0]) + ', ' + str(merge[1]) + ')')
+                    # These are lists because sometimes we may have to merge multiple instances of a bytepair in a pretoken
                     possible_merge0_indices = []
                     possible_merge1_indices = []
                     for l1 in range(len(pretoken)):
@@ -221,14 +197,10 @@ class BPETokenizer:
                             l1_index, l2_index = merge_found
                             pretoken[l1_index] += pretoken[l2_index]
                             pretoken.pop(l2_index)
-                        print('Merged! Pretoken afterwords = ' + str(pretoken))
 
                 if len(pretoken) == 1:
                     can_merge = False
                 merge_index+=1
-
-            print('pretoken post-processing = ' + str(pretoken))
-            print()
 
             encoding.extend([vocab_reverse[b] for b in pretoken])              
 
@@ -241,7 +213,6 @@ class BPETokenizer:
         bytestr = b''
         for vocab_index in ids:
             bytestr += self.vocab[vocab_index]
-        print('bytesr_raw = ' + str(bytestr))
         return bytestr.decode('utf-8', errors='replace')
 
     def generate_pretoken_counts(self, chunk):
@@ -363,17 +334,3 @@ class BPETokenizer:
         self.vocab = vocab
 
         return (vocab, merges)
-
-
-'''
-if __name__ == "__main__":
-    bpe_tokenizer = BPETokenizer('../data/tinystories_train_merges_output.txt', '../data/tinystories_train_vocab_output.txt')
-    bpe_tokenizer.train_bpe(input_path='../data/TinyStoriesV2-GPT4-train.txt', vocab_size=10000, special_tokens=["<|endoftext|>"])
-    bpe_tokenizer.save_data()
-    print(bpe_tokenizer.code_profiler)
-'''
-
-#bpe_tokenizer = BPETokenizer.from_files(BPETokenizer, '../data/tinystories_train_vocab_output.txt', '../data/tinystories_train_merges_output.txt', special_tokens=["<|endoftext|>"])
-#bpe_tokenizer.encode('the cat ate')
-        
-        
