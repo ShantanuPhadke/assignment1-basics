@@ -170,21 +170,23 @@ class BPETokenizer:
                     # These are lists because sometimes we may have to merge multiple instances of a bytepair in a pretoken
                     possible_merge0_indices = []
                     possible_merge1_indices = []
-                    for l1 in range(len(pretoken)):
+
+                    l1 = 0
+                    while l1 < len(pretoken)-1:
                         if pretoken[l1] == merge[0]:
-                            possible_merge0_indices.append(l1)
-                    for l2 in range(len(pretoken)):
-                        if pretoken[l2] == merge[1]:
-                            possible_merge1_indices.append(l2)
+                            if pretoken[l1+1] == merge[1]:
+                                possible_merge0_indices.append(l1)
+                                possible_merge1_indices.append(l1+1)
+                                l1+=1
+                        l1+=1
+
                     l1_pointer = 0
                     l2_pointer = 0
-                    merge_not_found = True
                     merges_found = []
                     while l1_pointer < len(possible_merge0_indices) and l2_pointer < len(possible_merge1_indices):
                         l1_index = possible_merge0_indices[l1_pointer]
                         l2_index = possible_merge1_indices[l2_pointer]
                         if l2_index - l1_index == 1:
-                            merge_not_found = False
                             merges_found.append((l1_index, l2_index))
                             l1_pointer+=1
                             l2_pointer+=1
@@ -192,6 +194,7 @@ class BPETokenizer:
                             l2_pointer+=1
                         else:
                             l1_pointer+=1
+
                     if len(merges_found) > 0:
                         for merge_found in merges_found[::-1]:
                             l1_index, l2_index = merge_found
