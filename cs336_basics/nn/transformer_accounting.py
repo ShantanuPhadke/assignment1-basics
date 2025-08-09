@@ -1,0 +1,2 @@
+class TransformerAccountant:
+	pass
