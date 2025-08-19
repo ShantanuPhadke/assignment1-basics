@@ -5,7 +5,7 @@ from typing import IO, Any, BinaryIO
 from collections.abc import Iterable
 from jaxtyping import Float, Int
 
-import numpy.typing as npt
+import numpy.typing as np
 import torch
 from torch import Tensor
 
@@ -14,6 +14,7 @@ from cs336_basics.nn.linear import Linear
 from cs336_basics.nn.embedding import Embedding
 from cs336_basics.nn.rms_norm import RMSProp
 from cs336_basics.nn.swiglu import SwiGLUNetwork
+from cs336_basics.nn.rotary_positional_embedding import RotaryPositionalEmbedding
 
 
 
@@ -212,7 +213,8 @@ def run_rope(
     Returns:
         Float[Tensor, " ... sequence_length d_k"]: Tensor with RoPEd input.
     """
-    raise NotImplementedError
+    rope_layer = RotaryPositionalEmbedding(theta, d_k, max_seq_len)
+    return rope_layer(in_query_or_key, token_positions)
 
 
 def run_transformer_block(
