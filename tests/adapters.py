@@ -15,7 +15,7 @@ from cs336_basics.nn.embedding import Embedding
 from cs336_basics.nn.rms_norm import RMSProp
 from cs336_basics.nn.swiglu import SwiGLUNetwork
 from cs336_basics.nn.rotary_positional_embedding import RotaryPositionalEmbedding
-
+from cs336_basics.nn.softmax import softmax
 
 
 def run_linear(
@@ -447,7 +447,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    raise NotImplementedError
+    return softmax(in_features, dim)
 
 
 def run_cross_entropy(inputs: Float[Tensor, " batch_size vocab_size"], targets: Int[Tensor, " batch_size"]) -> Float[Tensor, ""]:
