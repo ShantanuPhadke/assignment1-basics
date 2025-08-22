@@ -1,9 +1,10 @@
 import torch
 from einops import rearrange, einsum
 
-class SwiGLUNetwork:
+class SwiGLUNetwork(torch.nn.Module):
 	
 	def __init__(self, W1, W2, W3):
+		super().__init__()
 		self.W1 = torch.nn.parameter.Parameter(data=W1)
 		self.W2 = torch.nn.parameter.Parameter(data=W2)
 		self.W3 = torch.nn.parameter.Parameter(data=W3)

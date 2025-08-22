@@ -18,6 +18,8 @@ from cs336_basics.nn.rotary_positional_embedding import RotaryPositionalEmbeddin
 from cs336_basics.nn.softmax import softmax
 from cs336_basics.nn.scaled_dot_product_attention import scaled_dot_product_attention
 from cs336_basics.nn.multihead_self_attention import MultiHeadSelfAttention
+from cs336_basics.nn.transformer_block import TransformerBlock
+from cs336_basics.nn.transformer_lm import TransformerLM
 
 
 def run_linear(
@@ -293,7 +295,19 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    transformer_block = TransformerBlock(d_model, num_heads, d_ff, max_seq_len, theta=theta)
+    transformer_block.load_state_dict({
+        'mha_rope_layer.W_Q': weights['attn.q_proj.weight'],
+        'mha_rope_layer.W_K': weights['attn.k_proj.weight'],
+        'mha_rope_layer.W_V': weights['attn.v_proj.weight'],
+        'mha_rope_layer.W_O': weights['attn.output_proj.weight'],
+        'rms_norm_layer1.W': weights['ln1.weight'],
+        'swiglu_network.W1': weights['ffn.w1.weight'],
+        'swiglu_network.W2': weights['ffn.w2.weight'],
+        'swiglu_network.W3': weights['ffn.w3.weight'],
+        'rms_norm_layer2.W': weights['ln2.weight'],
+    })
+    return transformer_block(in_features)
 
 
 def run_transformer_lm(
@@ -375,7 +389,28 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    transformer_lm = TransformerLM(d_model, num_heads, d_ff, context_length, vocab_size, num_layers, theta=rope_theta)
+
+    new_state_dict = {
+        'token_embedding_layer.embedding_matrix': weights['token_embeddings.weight'],
+        'rms_norm_layer.W': weights['ln_final.weight'],
+        'linear_layer.W': weights['lm_head.weight']
+    }
+
+    for i in range(num_layers):
+        new_state_dict[f'transformer_block_{i}.rms_norm_layer1.W'] = weights[f'layers.{i}.ln1.weight']
+        new_state_dict[f'transformer_block_{i}.rms_norm_layer2.W'] = weights[f'layers.{i}.ln2.weight']
+        new_state_dict[f'transformer_block_{i}.mha_rope_layer.W_Q'] = weights[f'layers.{i}.attn.q_proj.weight']
+        new_state_dict[f'transformer_block_{i}.mha_rope_layer.W_K'] = weights[f'layers.{i}.attn.k_proj.weight']
+        new_state_dict[f'transformer_block_{i}.mha_rope_layer.W_V'] = weights[f'layers.{i}.attn.v_proj.weight']
+        new_state_dict[f'transformer_block_{i}.mha_rope_layer.W_O'] = weights[f'layers.{i}.attn.output_proj.weight']
+        new_state_dict[f'transformer_block_{i}.swiglu_network.W1'] = weights[f'layers.{i}.ffn.w1.weight']
+        new_state_dict[f'transformer_block_{i}.swiglu_network.W2'] = weights[f'layers.{i}.ffn.w2.weight']
+        new_state_dict[f'transformer_block_{i}.swiglu_network.W3'] = weights[f'layers.{i}.ffn.w3.weight']
+    
+    transformer_lm.load_state_dict(new_state_dict)
+    
+    return transformer_lm(in_indices)
 
 
 def run_rmsnorm(
