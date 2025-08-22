@@ -6,6 +6,7 @@ from einops import rearrange
 class RotaryPositionalEmbedding(torch.nn.Module):
 	def __init__(self, theta: float, d_k: int, max_seq_len: int, device=None):
 		super(RotaryPositionalEmbedding, self).__init__()
+		print('d_k = ' + str(d_k) + ', max_seq_len = ' + str(max_seq_len)) 
 		self.d_k = d_k
 		self.max_seq_len = max_seq_len
 
@@ -26,9 +27,13 @@ class RotaryPositionalEmbedding(torch.nn.Module):
 
 
 	def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
-		x1 = x[:,:,::2]
-		x2 = x[:,:,1::2]
-		x_rotated = torch.stack([x1 * self.cosine_values - x2 * self.sine_values,
-								 x1 * self.sine_values + x2 * self.cosine_values], dim=3)
+		x1 = x[...,::2]
+		x2 = x[...,1::2]
+		print('x1.shape = ' + str(x1.shape))
+		print('x2.shape = ' + str(x2.shape))
+		print('self.cosine_values.shape = ' + str(self.cosine_values[token_positions].shape))
+		print('self.sine_values.shape = ' + str(self.sine_values[token_positions].shape))
+		x_rotated = torch.stack([x1 * self.cosine_values[token_positions] - x2 * self.sine_values[token_positions],
+								 x1 * self.sine_values[token_positions] + x2 * self.cosine_values[token_positions]], dim=3)
 		return x_rotated.flatten(2,3)
 		
