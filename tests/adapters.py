@@ -24,6 +24,7 @@ from cs336_basics.nn.transformer_lm import TransformerLM
 from cs336_basics.training.cross_entropy import cross_entropy
 from cs336_basics.training.optim.adam_w import AdamW
 from cs336_basics.training.learning_rate_schedule import get_cosine_annealing_learning_rate_schedule
+from cs336_basics.training.gradient_clipping import clip_gradient
 
 
 def run_linear(
@@ -520,7 +521,7 @@ def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm:
 
     The gradients of the parameters (parameter.grad) should be modified in-place.
     """
-    raise NotImplementedError
+    return clip_gradient(parameters, max_l2_norm)
 
 
 def get_adamw_cls() -> type[torch.optim.Optimizer]:
